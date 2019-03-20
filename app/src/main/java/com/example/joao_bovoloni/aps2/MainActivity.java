@@ -15,6 +15,7 @@ import android.widget.Button;
 import android.widget.GridView;
 import android.widget.TextView;
 import android.os.Vibrator;
+import android.widget.Toast;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -48,15 +49,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         clientes = new ArrayList<>();
         gridView = (GridView) findViewById(R.id.gridview);
         cliente = (Button) findViewById(R.id.button2);
         atender = (Button) findViewById(R.id.button);
+        atender.setText("Caixa Dormindo(Acordar)");
         fila = (TextView) findViewById(R.id.fila);
         cliente.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+            cliente.setEnabled(false);
+                cliente.setText("Clientes");
                 processaPistaHandler.post(mPendingRunnable);
 
 
@@ -76,8 +80,9 @@ public class MainActivity extends AppCompatActivity {
         mPendingRunnable = new Runnable() {
             @Override
             public void run() {
-                int SOMA = 0;
-                if (maximoCliente > 0) {
+                if(atendimento()){
+                    int SOMA = 0;
+
                     final int min = 1;
                     final int max = 6;
                     final int randomProdutos = new Random().nextInt((max - min) + 1) + min;
@@ -97,24 +102,25 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     maximoCliente--;
-                    count++;
                     final int minNome = 0;
                     final int maxNome = 3;
                     final int nome = new Random().nextInt((maxNome - minNome) + 1) + minNome;
                     clientes.add(new Cliente(nomes[nome], count, SOMA));
-                    fila.setText("Fila: " + count);
+                    fila.setText("Fila: " + clientes.size());
                     if (clientes.size() > 10) {
-                        clientes.remove(count - 1);
-                        count--;
+                        clientes.remove(clientes.size() - 1);
                         fila.setText("Fila: " + clientes.size());
                         notificacao();
-                    }
-                    if (clientes.size() == 10) {
+                    } if (clientes.size() == 10) {
                         chamarAtencao();
                     }
 
 
                     processaPistaHandler.postDelayed(this, 1000);
+                }else{
+                    cliente.setEnabled(true);
+                    gridView.setAdapter(new ImageAdapter(MainActivity.this , eatFoodyImages));
+                    cliente.setText("Supermecado sem produtos");
                 }
 
 
@@ -124,10 +130,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if (clientes.size() != 0) {
-                    atendimento();
-                    processaPistaHandler1.postDelayed(this, 1000);
+                    atender.setText("Caixa em atendimento");
+                    clientes.remove(0);
+                    fila.setText("Fila: " + clientes.size());
+                    processaPistaHandler1.postDelayed(this, 500);
                 } else {
                     fila.setText("Fila: 0");
+                    atender.setText("Caixa Dormindo(Acordar)");
                 }
 
 
@@ -136,45 +145,23 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    void atendimento() {
-
-        // Countdown
-
-        Count = new CountDownTimer(500, 1000) {
-
-            public void onTick(long millisUntilFinished) {
-
-                Integer intMillis = (int) (long) millisUntilFinished;
-                Integer intOcupada = (int) (long) 500;
-                int total = (intOcupada - intMillis) * 100 / intOcupada;
-                atender.setText("cliente sendo atendido");
-
-
+    Boolean atendimento() {
+        for (int i = 0; i < eatFoodyImages.length; i++) {
+            View child = gridView.getChildAt(i);
+            TextView itemText = (TextView) child.findViewById(R.id.grid_item_label);
+            int total = Integer.parseInt(itemText.getText().toString());
+            if (total != 0) {
+                return true;
             }
 
-            public void onFinish() {
-                if (clientes.size() != 0) {
-                    clientes.remove(0);
-                } else {
-                    atender.setText("Atender");
 
-                }
+        }
 
-            }
-
-        }.start();
-
+        return false;
     }
 
     void notificacao() {
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle("Aviso")
-                        .setContentText("Um cliente saiu da fila");
-        NotificationManager mNotificationManager =
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(0, mBuilder.build());
+        Toast.makeText(this,"Um cliente saiu da fila",Toast.LENGTH_SHORT).show();
     }
 
     void chamarAtencao() {
